@@ -88,3 +88,22 @@ Result: PASS (10/10)
 
 - Recommended: **GO** for single-node HTTPS deployments with documented env config.
 - Conditional: if deployment is HTTP-only or multi-node with local disks, resolve risks above before release.
+
+## Final Quick Checklist (Go/No-Go)
+
+Run this checklist just before release:
+
+- [ ] `npm ci` completed without errors.
+- [ ] `npm run lint` passes.
+- [ ] `npm run build` passes.
+- [ ] `.env.local` (or production env) includes a non-placeholder `AUTH_SECRET`.
+- [ ] Login works and `/api/auth/me` returns authenticated user.
+- [ ] Settings save works and `COURSES_ROOT_PATH` points to a readable directory.
+- [ ] Dashboard shows courses from the configured path.
+- [ ] A lesson opens and media loads (video/audio/pdf/document).
+- [ ] Progress save works (`/api/progress`) and resume/recent lesson works.
+- [ ] Logout clears session and protected endpoints return `401`.
+- [ ] SQLite files (`locoprep.db`, `locoprep.config.json`) are backed up or persisted.
+- [ ] Production is served behind HTTPS (or trusted proxy with secure cookie config).
+
+If all are checked: **Ready to release**.

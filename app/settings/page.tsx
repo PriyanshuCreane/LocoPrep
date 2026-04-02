@@ -10,30 +10,12 @@ type SettingsResponse = {
   autoAdvanceOnEnd: boolean;
 };
 
-type DirectoryItem = {
-  name: string;
-  path: string;
-  mediaFiles: number;
-  isCourseCandidate: boolean;
-};
-
-type BrowseResponse = {
-  currentPath: string;
-  parentPath: string | null;
-  directories: DirectoryItem[];
-};
-
 export default function SettingsPage() {
   const [coursesRootPath, setCoursesRootPath] = useState("");
   const [autoplayVideos, setAutoplayVideos] = useState(false);
   const [autoAdvanceOnEnd, setAutoAdvanceOnEnd] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isBrowsing, setIsBrowsing] = useState(false);
-  const [browsePath, setBrowsePath] = useState("");
-  const [currentPath, setCurrentPath] = useState("");
-  const [parentPath, setParentPath] = useState<string | null>(null);
-  const [directories, setDirectories] = useState<DirectoryItem[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const resetAllProgress = useLessonProgressStore((state) => state.resetAllProgress);
   const setStats = useGamificationStore((state) => state.setStats);
@@ -47,6 +29,7 @@ export default function SettingsPage() {
           window.location.href = "/login";
           return;
         }
+
         const data = (await response.json()) as SettingsResponse;
         setCoursesRootPath(data.coursesRootPath ?? "");
         setAutoplayVideos(Boolean(data.autoplayVideos));
@@ -59,39 +42,6 @@ export default function SettingsPage() {
     };
 
     void loadSettings();
-  }, []);
-
-  const loadDirectories = async (pathValue = "") => {
-    setIsBrowsing(true);
-    try {
-      const response = await fetch(`/api/browse?path=${encodeURIComponent(pathValue)}`, {
-        cache: "no-store",
-      });
-
-      if (response.status === 401) {
-        setMessage("Session expired. Redirecting to login...");
-        window.location.href = "/login";
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Unable to browse directories.");
-      }
-
-      const data = (await response.json()) as BrowseResponse;
-      setCurrentPath(data.currentPath);
-      setParentPath(data.parentPath);
-      setDirectories(data.directories ?? []);
-      setBrowsePath(pathValue);
-    } catch {
-      setMessage("Unable to browse directories.");
-    } finally {
-      setIsBrowsing(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadDirectories();
   }, []);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -209,72 +159,6 @@ export default function SettingsPage() {
         ) : null}
 
         <div className="border-t border-white/16 pt-4">
-          <p className="text-sm font-semibold text-white/90">Browse course directory</p>
-          <p className="mt-1 text-xs text-white/65">Navigate folders and pick a course root without typing paths.</p>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
-              className="btn btn-ghost px-4 py-2 text-xs"
-              disabled={isBrowsing || !parentPath}
-              onClick={() => {
-                void loadDirectories(parentPath ?? "");
-              }}
-              type="button"
-            >
-              Go Parent
-            </button>
-            <button
-              className="btn btn-ghost px-4 py-2 text-xs"
-              disabled={isBrowsing}
-              onClick={() => {
-                void loadDirectories(browsePath);
-              }}
-              type="button"
-            >
-              Refresh
-            </button>
-            <span className="text-xs text-white/65">Current: {currentPath || "Select a drive"}</span>
-          </div>
-
-          <div className="mt-3 max-h-72 space-y-2 overflow-auto rounded-xl border border-white/16 bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] p-3">
-            {isBrowsing ? <p className="text-xs text-white/65">Loading folders...</p> : null}
-            {!isBrowsing && directories.length === 0 ? <p className="text-xs text-white/65">No directories found.</p> : null}
-            {!isBrowsing
-              ? directories.map((item, index) => (
-                  <div
-                    key={item.path}
-                    className="motion-reveal motion-hover-surface rounded-lg border border-white/16 bg-[color-mix(in_srgb,var(--surface-2)_78%,transparent)] p-3"
-                    style={{ ["--reveal-delay" as string]: `${80 + (index % 7) * 50}ms` }}
-                  >
-                    <p className="text-sm font-semibold text-white">{item.name}</p>
-                    <p className="mt-1 text-xs text-white/65">{item.mediaFiles} media/content files detected</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <button
-                        className="btn btn-ghost px-3 py-1 text-xs"
-                        onClick={() => {
-                          void loadDirectories(item.path);
-                        }}
-                        type="button"
-                      >
-                        Open
-                      </button>
-                      <button
-                        className="btn btn-primary px-3 py-1 text-xs"
-                        onClick={() => setCoursesRootPath(item.path)}
-                        type="button"
-                      >
-                        Use this path
-                      </button>
-                    </div>
-                  </div>
-                ))
-              : null}
-          </div>
-        </div>
-
-        {message ? <p className="text-sm text-white/85">{message}</p> : null}
-
-        <div className="border-t border-white/16 pt-4">
           <p className="text-sm font-semibold text-white/90">Local progress cache</p>
           <p className="mt-1 text-xs text-white/65">
             This clears browser-stored progress and gamification values for this device.
@@ -287,8 +171,9 @@ export default function SettingsPage() {
             Clear local progress
           </button>
         </div>
+
+        {message ? <p className="text-sm text-white/85">{message}</p> : null}
       </form>
     </section>
   );
 }
-

@@ -24,11 +24,23 @@ function toTitle(fileName: string): string {
     .trim();
 }
 
+async function safeReadDir(dirPath: string) {
+  try {
+    return await fs.readdir(dirPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+}
+
 async function findContentFilesRecursively(dirPath: string): Promise<string[]> {
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const entries = await safeReadDir(dirPath);
   const nested = await Promise.all(
     entries.map(async (entry) => {
       const fullPath = path.join(dirPath, entry.name);
+
+      if (entry.isSymbolicLink()) {
+        return [];
+      }
 
       if (entry.isDirectory()) {
         return findContentFilesRecursively(fullPath);
@@ -84,22 +96,22 @@ function toMediaType(fileName: string): "video" | "audio" | "text" | "pdf" | "qu
 }
 
 export async function scanCourses(coursesRootPath: string): Promise<Course[]> {
-  const courseEntries = await fs.readdir(coursesRootPath, { withFileTypes: true });
+  const courseEntries = await safeReadDir(coursesRootPath);
 
   const courses: Course[] = [];
 
   for (const courseEntry of courseEntries) {
-    if (!courseEntry.isDirectory()) {
+    if (!courseEntry.isDirectory() || courseEntry.isSymbolicLink()) {
       continue;
     }
 
     const coursePath = path.join(coursesRootPath, courseEntry.name);
-    const moduleEntries = await fs.readdir(coursePath, { withFileTypes: true });
+    const moduleEntries = await safeReadDir(coursePath);
 
     const modules: Module[] = [];
 
     for (const moduleEntry of moduleEntries) {
-      if (!moduleEntry.isDirectory()) {
+      if (!moduleEntry.isDirectory() || moduleEntry.isSymbolicLink()) {
         continue;
       }
 

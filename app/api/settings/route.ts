@@ -12,10 +12,9 @@ export async function GET(request: NextRequest) {
   }
 
   const configSettings = await readAppSettingsFromConfig();
-  const coursesRootPath = (process.env.COURSES_ROOT_PATH ?? "").trim() || configSettings.coursesRootPath;
 
   return NextResponse.json({
-    coursesRootPath,
+    coursesRootPath: configSettings.coursesRootPath,
     autoplayVideos: configSettings.autoplayVideos,
     autoAdvanceOnEnd: configSettings.autoAdvanceOnEnd,
   });

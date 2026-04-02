@@ -10,9 +10,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const envPath = (process.env.COURSES_ROOT_PATH ?? "").trim();
-  const configPath = await readCoursesRootPathFromConfig();
-  const coursesRootPath = envPath || configPath;
+  const coursesRootPath = await readCoursesRootPathFromConfig();
 
   if (!coursesRootPath) {
     return NextResponse.json([]);

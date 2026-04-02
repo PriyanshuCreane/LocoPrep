@@ -129,9 +129,8 @@ export async function GET(
   }
 
   try {
-    const envPath = (process.env.COURSES_ROOT_PATH ?? "").trim();
     const configPath = await readCoursesRootPathFromConfig();
-    const coursesRootPath = envPath || configPath;
+    const coursesRootPath = configPath;
 
     if (!coursesRootPath) {
       return new Response("COURSES_ROOT_PATH is not configured", { status: 400 });
