@@ -1,7 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const CONFIG_FILE_PATH = path.join(process.cwd(), "locoprep.config.json");
+const DEFAULT_CONFIG_FILE_PATH = path.join(process.cwd(), "locoprep.config.json");
+const CONFIG_FILE_PATH =
+  (process.env.LOCOPREP_CONFIG_PATH ?? DEFAULT_CONFIG_FILE_PATH).trim() ||
+  DEFAULT_CONFIG_FILE_PATH;
 
 export type AppSettings = {
   coursesRootPath: string;
@@ -46,6 +49,8 @@ export async function writeCoursesRootPathToConfig(coursesRootPath: string): Pro
 }
 
 export async function writeAppSettingsToConfig(settings: AppSettings): Promise<void> {
+  await fs.mkdir(path.dirname(CONFIG_FILE_PATH), { recursive: true });
+
   const payload = {
     coursesRootPath: settings.coursesRootPath.trim(),
     autoplayVideos: settings.autoplayVideos,

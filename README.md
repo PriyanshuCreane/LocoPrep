@@ -26,6 +26,21 @@ npm run build
 npm run start
 ```
 
+## Docker Run
+
+This project is set up for a single Docker container with persistent storage for SQLite and config files.
+
+```bash
+docker compose up -d --build
+```
+
+Default mounted paths in the container:
+
+- database: `/data/locoprep.db`
+- config: `/data/locoprep.config.json`
+
+The app’s Settings page includes a directory browser. On Windows, it starts at your drives, so you can choose any folder on your machine without copying files into the project.
+
 ## Production Checklist
 
 ### 1) Environment
@@ -49,6 +64,7 @@ Checklist:
 - Set strong `AUTH_SECRET` in every environment.
 - Confirm `COURSES_ROOT_PATH` points to readable course storage.
 - Ensure Node version supports Next.js 15 runtime.
+- For Docker, keep `locoprep.db` and `locoprep.config.json` on persistent mounted storage.
 
 ### 2) Data & Storage
 

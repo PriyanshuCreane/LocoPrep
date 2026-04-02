@@ -20,6 +20,10 @@
 # production
 /build
 
+# local docker/runtime data
+/data
+/courses
+
 # misc
 .DS_Store
 *.pem

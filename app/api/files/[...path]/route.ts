@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import nodePath from "node:path";
-import { Readable } from "node:stream";
 import { NextRequest } from "next/server";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { readCoursesRootPathFromConfig } from "@/lib/config";

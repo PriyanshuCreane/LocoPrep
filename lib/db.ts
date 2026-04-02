@@ -1,7 +1,14 @@
+import fs from "node:fs";
+import path from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 
-const sqlite = new Database("locoprep.db");
+const DEFAULT_DB_PATH = "locoprep.db";
+const DB_PATH = (process.env.LOCOPREP_DB_PATH ?? DEFAULT_DB_PATH).trim() || DEFAULT_DB_PATH;
+
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
+const sqlite = new Database(DB_PATH);
 
 sqlite.exec(`
 	CREATE TABLE IF NOT EXISTS users (
