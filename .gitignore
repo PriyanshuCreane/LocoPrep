@@ -20,6 +20,10 @@
 # production
 /build
 
+# local runtime artifacts
+/data/
+/locoprep.db
+
 # misc
 .DS_Store
 *.pem
