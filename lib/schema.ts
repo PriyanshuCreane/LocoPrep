@@ -1,21 +1,21 @@
-import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { bigint, boolean, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const usersTable = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const usersTable = pgTable("users", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: text("created_at").notNull(),
 });
 
-export const lessonsProgress = sqliteTable(
+export const lessonsProgress = pgTable(
   "lessons_progress",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id").notNull(),
     lessonId: text("lesson_id").notNull(),
     courseId: text("course_id").notNull(),
     lastWatchedTime: integer("last_watched_time").notNull().default(0),
-    completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+    completed: boolean("completed").notNull().default(false),
     xpEarned: integer("xp_earned").notNull().default(0),
     lastUpdated: text("last_updated").notNull(),
   },
@@ -24,16 +24,16 @@ export const lessonsProgress = sqliteTable(
   }),
 );
 
-export const streaksTable = sqliteTable("streaks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const streaksTable = pgTable("streaks", {
+  id: serial("id").primaryKey(),
   currentStreak: integer("current_streak").notNull().default(0),
   longestStreak: integer("longest_streak").notNull().default(0),
   lastCompletionDate: text("last_completion_date"),
   lastUpdated: text("last_updated").notNull(),
 });
 
-export const userStreaksTable = sqliteTable("user_streaks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const userStreaksTable = pgTable("user_streaks", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique(),
   currentStreak: integer("current_streak").notNull().default(0),
   longestStreak: integer("longest_streak").notNull().default(0),
@@ -41,19 +41,19 @@ export const userStreaksTable = sqliteTable("user_streaks", {
   lastUpdated: text("last_updated").notNull(),
 });
 
-export const authRateLimitsTable = sqliteTable("auth_rate_limits", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const authRateLimitsTable = pgTable("auth_rate_limits", {
+  id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
   count: integer("count").notNull().default(0),
-  resetAt: integer("reset_at").notNull(),
+  resetAt: bigint("reset_at", { mode: "number" }).notNull(),
   lastUpdated: text("last_updated").notNull(),
 });
 
-export const authLoginLocksTable = sqliteTable("auth_login_locks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const authLoginLocksTable = pgTable("auth_login_locks", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   failedAttempts: integer("failed_attempts").notNull().default(0),
-  lockedUntil: integer("locked_until").notNull().default(0),
+  lockedUntil: bigint("locked_until", { mode: "number" }).notNull().default(0),
   lastUpdated: text("last_updated").notNull(),
 });
 
