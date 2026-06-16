@@ -102,6 +102,12 @@ export default function LoginPage() {
               Create one
             </Link>
           </p>
+          <p className="mt-2 text-xs sm:text-sm text-[color-mix(in_srgb,var(--foreground)_74%,transparent)]">
+            Forgot password?{" "}
+            <Link href="/reset-password" className="font-semibold text-[var(--accent-soft)] hover:text-[var(--foreground)]">
+              Force reset
+            </Link>
+          </p>
         </form>
       </section>
     </main>
