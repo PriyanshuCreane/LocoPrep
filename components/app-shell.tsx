@@ -31,7 +31,7 @@ export function AppShell({ children }: AppShellProps) {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   const isAuthPage = useMemo(
-    () => pathname === "/login" || pathname === "/signup",
+    () => pathname === "/login" || pathname === "/signup" || pathname === "/reset-password",
     [pathname],
   );
 
