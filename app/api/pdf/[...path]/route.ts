@@ -4,7 +4,7 @@ import nodePath from "node:path";
 import { Readable } from "node:stream";
 import { NextRequest } from "next/server";
 import { getUserIdFromRequest } from "@/lib/auth";
-import { readCoursesRootPathFromConfig } from "@/lib/config";
+import { resolveConfiguredCourseRootPath } from "@/lib/config";
 
 async function isPdfFile(filePath: string): Promise<boolean> {
   let handle: fsPromises.FileHandle | null = null;
@@ -86,8 +86,7 @@ export async function GET(
   }
 
   try {
-    const configPath = await readCoursesRootPathFromConfig();
-    const coursesRootPath = configPath;
+    const coursesRootPath = await resolveConfiguredCourseRootPath(request.nextUrl.searchParams.get("root"));
 
     if (!coursesRootPath) {
       return new Response("COURSES_ROOT_PATH is not configured", { status: 400 });

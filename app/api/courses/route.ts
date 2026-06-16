@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserIdFromRequest } from "@/lib/auth";
-import { readCoursesRootPathFromConfig } from "@/lib/config";
+import { readCourseRootsFromConfig, type CourseRootSetting } from "@/lib/config";
 import { scanCourses } from "@/lib/course-scanner";
 
 export async function GET(request: NextRequest) {
@@ -10,27 +10,38 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const coursesRootPath = await readCoursesRootPathFromConfig();
+  const courseRoots = await readCourseRootsFromConfig();
 
-  if (!coursesRootPath) {
+  if (!courseRoots.length) {
     return NextResponse.json([]);
   }
 
   try {
-    const stat = await fs.stat(coursesRootPath);
+    const validRoots: CourseRootSetting[] = [];
 
-    if (!stat.isDirectory()) {
+    for (const root of courseRoots) {
+      try {
+        const stat = await fs.stat(root.path);
+        if (stat.isDirectory()) {
+          validRoots.push(root);
+        }
+      } catch {
+        // Ignore missing roots so other configured libraries still load.
+      }
+    }
+
+    if (!validRoots.length) {
       return NextResponse.json(
-        { error: "COURSES_ROOT_PATH must point to a directory." },
+        { error: "At least one COURSES_ROOT_PATH must point to a directory." },
         { status: 400 },
       );
     }
 
-    const courses = await scanCourses(coursesRootPath);
+    const courses = await scanCourses(validRoots);
     return NextResponse.json(courses);
   } catch {
     return NextResponse.json(
-      { error: "Unable to scan courses. Check COURSES_ROOT_PATH." },
+      { error: "Unable to scan courses. Check COURSES_ROOT_PATH values." },
       { status: 400 },
     );
   }

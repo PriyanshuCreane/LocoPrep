@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Course, Lesson, Module } from "@/types";
+import type { Course, Module } from "@/types";
+import type { CourseRootSetting } from "@/lib/config";
 
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mkv", ".webm", ".mov", ".avi", ".m4v"]);
 const AUDIO_EXTENSIONS = new Set([".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"]);
@@ -8,6 +9,17 @@ const TEXT_EXTENSIONS = new Set([".txt", ".md", ".html", ".htm"]);
 const PDF_EXTENSIONS = new Set([".pdf"]);
 const DOCUMENT_EXTENSIONS = new Set([".doc", ".docx", ".rtf"]);
 const QUIZ_HINTS = ["quiz", "exam", "test", "assessment", "exercise", "assignment", "homework"];
+const NOISE_NAME_HINTS = ["support us", "freecoursesonline", "websites you may like"];
+
+function isSupportedContentExtension(ext: string): boolean {
+  return (
+    VIDEO_EXTENSIONS.has(ext) ||
+    AUDIO_EXTENSIONS.has(ext) ||
+    TEXT_EXTENSIONS.has(ext) ||
+    PDF_EXTENSIONS.has(ext) ||
+    DOCUMENT_EXTENSIONS.has(ext)
+  );
+}
 
 function toId(value: string): string {
   return value
@@ -32,6 +44,11 @@ async function safeReadDir(dirPath: string) {
   }
 }
 
+function shouldIgnoreEntryName(name: string): boolean {
+  const lower = name.toLowerCase();
+  return NOISE_NAME_HINTS.some((hint) => lower.includes(hint));
+}
+
 async function findContentFilesRecursively(dirPath: string): Promise<string[]> {
   const entries = await safeReadDir(dirPath);
   const nested = await Promise.all(
@@ -43,6 +60,9 @@ async function findContentFilesRecursively(dirPath: string): Promise<string[]> {
       }
 
       if (entry.isDirectory()) {
+        if (shouldIgnoreEntryName(entry.name)) {
+          return [];
+        }
         return findContentFilesRecursively(fullPath);
       }
 
@@ -51,13 +71,11 @@ async function findContentFilesRecursively(dirPath: string): Promise<string[]> {
       }
 
       const ext = path.extname(entry.name).toLowerCase();
-      if (
-        VIDEO_EXTENSIONS.has(ext) ||
-        AUDIO_EXTENSIONS.has(ext) ||
-        TEXT_EXTENSIONS.has(ext) ||
-        PDF_EXTENSIONS.has(ext) ||
-        DOCUMENT_EXTENSIONS.has(ext)
-      ) {
+      if (ext === ".url" || shouldIgnoreEntryName(entry.name)) {
+        return [];
+      }
+
+      if (isSupportedContentExtension(ext)) {
         return [fullPath];
       }
 
@@ -95,58 +113,120 @@ function toMediaType(fileName: string): "video" | "audio" | "text" | "pdf" | "qu
   return "text";
 }
 
-export async function scanCourses(coursesRootPath: string): Promise<Course[]> {
-  const courseEntries = await safeReadDir(coursesRootPath);
+function buildLesson(filePath: string, rootPath: string) {
+  const relativePath = path.relative(rootPath, filePath).replace(/\\/g, "/");
+  const fileName = path.basename(filePath);
+  const extension = path.extname(fileName).toLowerCase();
 
+  return {
+    id: toId(relativePath),
+    title: toTitle(fileName),
+    contentPath: relativePath,
+    mediaType: toMediaType(fileName),
+    fileExtension: extension,
+  };
+}
+
+export async function scanCourses(courseRoots: CourseRootSetting[]): Promise<Course[]> {
   const courses: Course[] = [];
 
-  for (const courseEntry of courseEntries) {
-    if (!courseEntry.isDirectory() || courseEntry.isSymbolicLink()) {
+  for (const courseRoot of courseRoots) {
+    const normalizedRootPath = courseRoot.path.trim();
+
+    if (!normalizedRootPath) {
       continue;
     }
 
-    const coursePath = path.join(coursesRootPath, courseEntry.name);
-    const moduleEntries = await safeReadDir(coursePath);
+    const courseEntries = await safeReadDir(normalizedRootPath);
 
-    const modules: Module[] = [];
-
-    for (const moduleEntry of moduleEntries) {
-      if (!moduleEntry.isDirectory() || moduleEntry.isSymbolicLink()) {
+    for (const courseEntry of courseEntries) {
+      if (!courseEntry.isDirectory() || courseEntry.isSymbolicLink()) {
         continue;
       }
 
-      const modulePath = path.join(coursePath, moduleEntry.name);
-      const lessonContentFiles = await findContentFilesRecursively(modulePath);
+      const coursePath = path.join(normalizedRootPath, courseEntry.name);
+      const courseItems = (await safeReadDir(coursePath)).filter((item) => !shouldIgnoreEntryName(item.name));
 
-      const lessons: Lesson[] = lessonContentFiles
-        .sort((a, b) => a.localeCompare(b))
-        .map((filePath) => {
-          const relativePath = path.relative(coursesRootPath, filePath).replace(/\\/g, "/");
-          const fileName = path.basename(filePath);
-          const extension = path.extname(fileName).toLowerCase();
+      const modules: Module[] = [];
 
-          return {
-            id: toId(relativePath),
-            title: toTitle(fileName),
-            contentPath: relativePath,
-            mediaType: toMediaType(fileName),
-            fileExtension: extension,
-          };
+      const directFiles = courseItems
+        .filter((item) => item.isFile())
+        .map((item) => path.join(coursePath, item.name))
+        .filter((filePath) => {
+          const ext = path.extname(filePath).toLowerCase();
+
+          return VIDEO_EXTENSIONS.has(ext) || AUDIO_EXTENSIONS.has(ext) || PDF_EXTENSIONS.has(ext) || DOCUMENT_EXTENSIONS.has(ext);
         });
 
-      modules.push({
-        id: toId(`${courseEntry.name}-${moduleEntry.name}`),
-        name: moduleEntry.name,
-        lessons,
-      });
-    }
+      if (directFiles.length > 0) {
+        modules.push({
+          id: toId(`${courseRoot.label}-${courseEntry.name}-content`),
+          name: "Content",
+          lessons: directFiles.sort((a, b) => a.localeCompare(b)).map((filePath) => buildLesson(filePath, normalizedRootPath)),
+        });
+      }
 
-    courses.push({
-      id: toId(courseEntry.name),
-      name: courseEntry.name,
-      modules,
-    });
+      for (const moduleEntry of courseItems) {
+        if (!moduleEntry.isDirectory() || moduleEntry.isSymbolicLink()) {
+          continue;
+        }
+
+        const modulePath = path.join(coursePath, moduleEntry.name);
+        const moduleItems = (await safeReadDir(modulePath)).filter((item) => !shouldIgnoreEntryName(item.name));
+        const directModuleFiles = moduleItems
+          .filter((item) => item.isFile())
+          .filter((item) => {
+            const ext = path.extname(item.name).toLowerCase();
+            return ext !== ".url" && isSupportedContentExtension(ext);
+          });
+        const chapterDirs = moduleItems.filter((item) => item.isDirectory() && !item.isSymbolicLink());
+
+        if (directModuleFiles.length === 0 && chapterDirs.length > 0) {
+          for (const chapterDir of chapterDirs) {
+            const chapterPath = path.join(modulePath, chapterDir.name);
+            const chapterContentFiles = await findContentFilesRecursively(chapterPath);
+            const chapterLessons = chapterContentFiles.sort((a, b) => a.localeCompare(b)).map((filePath) => buildLesson(filePath, normalizedRootPath));
+
+            if (chapterLessons.length > 0) {
+              modules.push({
+                id: toId(`${courseRoot.label}-${courseEntry.name}-${moduleEntry.name}-${chapterDir.name}`),
+                name: `${moduleEntry.name} / ${chapterDir.name}`,
+                lessons: chapterLessons,
+              });
+            }
+          }
+        } else {
+          const lessonContentFiles = await findContentFilesRecursively(modulePath);
+          const lessons = lessonContentFiles.sort((a, b) => a.localeCompare(b)).map((filePath) => buildLesson(filePath, normalizedRootPath));
+
+          if (lessons.length > 0) {
+            modules.push({
+              id: toId(`${courseRoot.label}-${courseEntry.name}-${moduleEntry.name}`),
+              name: moduleEntry.name,
+              lessons,
+            });
+          }
+        }
+      }
+
+      if (modules.length > 0) {
+        courses.push({
+          id: toId(`${courseRoot.label}-${courseEntry.name}`),
+          name: courseEntry.name,
+          modules,
+          sourceRootPath: normalizedRootPath,
+          sourceRootLabel: courseRoot.label,
+        });
+      }
+    }
   }
 
-  return courses.sort((a, b) => a.name.localeCompare(b.name));
+  return courses.sort((a, b) => {
+    const rootComparison = a.sourceRootLabel.localeCompare(b.sourceRootLabel);
+    if (rootComparison !== 0) {
+      return rootComparison;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
 }

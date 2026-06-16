@@ -108,7 +108,7 @@ function PdfPageCanvas({
           {pageError}
         </div>
       ) : (
-        <canvas ref={canvasRef} className="block h-auto w-full rounded-xl bg-white" />
+        <canvas ref={canvasRef} className="block h-auto w-full rounded-xl bg-[color-mix(in_srgb,var(--surface)_95%,transparent)]" />
       )}
     </div>
   );
@@ -117,7 +117,9 @@ function PdfPageCanvas({
 export default function PdfViewerPage() {
   const searchParams = useSearchParams();
   const rawPath = searchParams.get("path");
-  const sourceFromPath = rawPath ? `/api/pdf/${rawPath}` : null;
+  const rootPath = searchParams.get("root");
+  const rootQuery = rootPath ? `?root=${encodeURIComponent(rootPath)}` : "";
+  const sourceFromPath = rawPath ? `/api/pdf/${rawPath}${rootQuery}` : null;
   const legacySource = searchParams.get("src");
   const sourceUrl = sourceFromPath ?? legacySource;
   const viewerRef = useRef<HTMLDivElement | null>(null);
@@ -174,7 +176,9 @@ export default function PdfViewerPage() {
 
         // Fallback for older links that still point to /api/files?inline=1
         const secondaryUrl =
-          rawPath && !sourceUrl.startsWith("/api/files/") ? `/api/files/${rawPath}?inline=1` : null;
+          rawPath && !sourceUrl.startsWith("/api/files/")
+            ? `/api/files/${rawPath}?inline=1${rootPath ? `&root=${encodeURIComponent(rootPath)}` : ""}`
+            : null;
 
         const activeResponse =
           response.ok || !secondaryUrl
@@ -226,7 +230,7 @@ export default function PdfViewerPage() {
       cancelled = true;
       void currentDocument?.destroy();
     };
-  }, [rawPath, sourceUrl]);
+  }, [rawPath, sourceUrl, rootPath]);
 
   useEffect(() => {
     if (sourceUrl) {

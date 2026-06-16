@@ -2,6 +2,18 @@ export interface Course {
   id: string;
   name: string;
   modules: Module[];
+  sourceRootPath: string;
+  sourceRootLabel: string;
+}
+
+export interface CourseFolder {
+  id: string;
+  label: string;
+}
+
+export interface CourseOrganizerState {
+  folders: CourseFolder[];
+  courseFolderMap: Record<string, string>;
 }
 
 export interface Module {

@@ -39,17 +39,17 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 sm:p-8">
+    <main className="relative flex h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_18%,rgba(226,231,223,0.2),transparent_40%),radial-gradient(circle_at_86%_14%,rgba(185,193,185,0.12),transparent_34%),radial-gradient(circle_at_60%_84%,rgba(226,231,223,0.08),transparent_46%)]" />
 
-      <section className="glass-luxe edge-glow-violet relative grid w-full max-w-5xl overflow-hidden rounded-[28px] lg:grid-cols-[1fr_1.08fr]">
-        <form onSubmit={onSubmit} className="p-6 sm:p-8 lg:p-10">
-          <h1 className="text-3xl font-bold text-white">Create your account</h1>
-          <p className="mt-2 text-sm text-white/70">Save progress, keep streaks, and unlock guided practice paths.</p>
+      <section className="glass-luxe edge-glow-violet relative grid w-full max-h-[calc(100vh-2rem)] max-w-5xl overflow-hidden rounded-[28px] lg:grid-cols-[1fr_1.08fr]">
+        <form onSubmit={onSubmit} className="overflow-y-auto p-5 sm:p-6 lg:p-8 flex flex-col justify-center">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] sm:text-3xl">Create your account</h1>
+          <p className="mt-2 text-xs sm:text-sm text-[color-mix(in_srgb,var(--foreground)_74%,transparent)]">Save progress, keep streaks, and unlock guided practice paths.</p>
 
-          <label className="mt-6 block text-sm font-medium text-[var(--foreground)]">Email</label>
+          <label className="mt-4 block text-xs sm:text-sm font-medium text-[var(--foreground)]">Email</label>
           <input
-            className="mt-2 w-full rounded-2xl border border-white/24 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] px-4 py-3 text-[var(--foreground)] outline-none ring-white/20 transition placeholder:text-[var(--muted)] focus:ring"
+            className="mt-1 w-full rounded-xl border border-white/24 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] px-3 py-2 text-xs sm:text-sm text-[var(--foreground)] outline-none ring-white/20 transition placeholder:text-[var(--muted)] focus:ring"
             type="email"
             autoComplete="email"
             value={email}
@@ -58,9 +58,9 @@ export default function SignupPage() {
             required
           />
 
-          <label className="mt-5 block text-sm font-medium text-[var(--foreground)]">Password</label>
+          <label className="mt-3 block text-xs sm:text-sm font-medium text-[var(--foreground)]">Password</label>
           <input
-            className="mt-2 w-full rounded-2xl border border-white/24 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] px-4 py-3 text-[var(--foreground)] outline-none ring-white/20 transition placeholder:text-[var(--muted)] focus:ring"
+            className="mt-1 w-full rounded-xl border border-white/24 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] px-3 py-2 text-xs sm:text-sm text-[var(--foreground)] outline-none ring-white/20 transition placeholder:text-[var(--muted)] focus:ring"
             type="password"
             autoComplete="new-password"
             value={password}
@@ -70,17 +70,17 @@ export default function SignupPage() {
             minLength={8}
           />
 
-          {error ? <p className="mt-4 rounded-xl border border-rose-300/25 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">{error}</p> : null}
+          {error ? <p className="mt-3 rounded-xl border border-rose-300/25 bg-rose-400/10 px-2 py-1.5 text-xs text-rose-200">{error}</p> : null}
 
           <button
-            className="btn btn-primary mt-6 w-full rounded-2xl px-4 py-3"
+            className="btn btn-primary mt-4 w-full rounded-xl px-4 py-2 text-sm"
             disabled={isSubmitting}
             type="submit"
           >
             {isSubmitting ? "Creating account..." : "Create account"}
           </button>
 
-          <p className="mt-5 text-sm text-white/70">
+          <p className="mt-4 text-xs sm:text-sm text-[color-mix(in_srgb,var(--foreground)_74%,transparent)]">
             Have an account?{" "}
             <Link href="/login" className="font-semibold text-[var(--accent-soft)] hover:text-[var(--foreground)]">
               Sign in
@@ -88,19 +88,19 @@ export default function SignupPage() {
           </p>
         </form>
 
-        <aside className="hidden border-l border-white/20 p-10 lg:block">
+        <aside className="hidden border-l border-white/20 overflow-y-auto p-8 lg:flex lg:flex-col lg:justify-center">
           <p className="accent-script inline-flex rounded-full border border-white/25 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground)]">
             LocoPrep
           </p>
-          <h2 className="mt-6 text-4xl font-bold leading-[1.05] text-white">
+          <h2 className="mt-4 text-3xl font-bold leading-[1.05] text-[var(--foreground)]">
             Build fluency with
             <span className="block text-[var(--accent-soft)]">momentum you can feel.</span>
           </h2>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-white/70">
+          <p className="mt-3 max-w-md text-xs leading-relaxed text-[color-mix(in_srgb,var(--foreground)_74%,transparent)]">
             Get adaptive learning paths, mixed lesson media, and streak-friendly routines designed for consistency.
           </p>
-          <div className="glass-luxe-soft edge-glow-violet mt-10 space-y-3 rounded-2xl p-4 text-sm text-[var(--foreground)]">
-            <p className="font-semibold text-white">What you unlock</p>
+          <div className="glass-luxe-soft edge-glow-violet mt-6 space-y-2 rounded-2xl p-3 text-xs text-[var(--foreground)]">
+            <p className="font-semibold text-[var(--foreground)]">What you unlock</p>
             <p>Track XP and levels per course.</p>
             <p>Resume exactly where you paused.</p>
             <p>Practice with videos, text, quizzes, and documents.</p>

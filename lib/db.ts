@@ -2,6 +2,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -15,6 +16,12 @@ const sql = neon(databaseUrl);
 
 export const db = drizzle(sql);
 
+// Resolve the drizzle/ folder relative to this file rather than process.cwd().
+// This is more reliable on Vercel serverless where cwd() may differ.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const MIGRATIONS_FOLDER = path.join(__dirname, "..", "drizzle");
+
 // Run migrations automatically on startup.
 // Safe to call repeatedly — drizzle-kit tracks applied migrations in __drizzle_migrations table.
 let migrationRan = false;
@@ -24,11 +31,10 @@ export async function runMigrations(): Promise<void> {
 	migrationRan = true;
 
 	try {
-		await migrate(db, {
-			migrationsFolder: path.join(process.cwd(), "drizzle"),
-		});
+		await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+		console.log("[db] Migrations applied successfully.");
 	} catch (error) {
-		console.error("[db] Migration failed:", error);
-		throw error;
+		// Log but don't crash the server — tables may already exist from a prior deploy.
+		console.error("[db] Migration warning:", error);
 	}
 }

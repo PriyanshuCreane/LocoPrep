@@ -3,7 +3,7 @@ import fsPromises from "node:fs/promises";
 import nodePath from "node:path";
 import { NextRequest } from "next/server";
 import { getUserIdFromRequest } from "@/lib/auth";
-import { readCoursesRootPathFromConfig } from "@/lib/config";
+import { resolveConfiguredCourseRootPath } from "@/lib/config";
 
 const MIME_TYPES: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -129,8 +129,7 @@ export async function GET(
   }
 
   try {
-    const configPath = await readCoursesRootPathFromConfig();
-    const coursesRootPath = configPath;
+    const coursesRootPath = await resolveConfiguredCourseRootPath(request.nextUrl.searchParams.get("root"));
 
     if (!coursesRootPath) {
       return new Response("COURSES_ROOT_PATH is not configured", { status: 400 });

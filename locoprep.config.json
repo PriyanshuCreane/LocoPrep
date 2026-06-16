@@ -1,6 +1,37 @@
 {
-  "coursesRootPath": "D:/Courses",
+  "coursesRootPath": "D:\\Courses",
+  "courseRoots": [
+    {
+      "path": "D:\\Courses",
+      "label": "Courses"
+    }
+  ],
+  "courseOrganizer": {
+    "folders": [
+      {
+        "id": "folder-1775229333114-rhxhij",
+        "label": "Mosh"
+      },
+      {
+        "id": "folder-1775229427785-xjx4i9",
+        "label": "Languages"
+      },
+      {
+        "id": "folder-1775398177244-5vmhpa",
+        "label": "DSA"
+      }
+    ],
+    "courseFolderMap": {
+      "courses-codewithmosh-spring-boot-mastering-the-fundamentals-2025-4": "folder-1775229333114-rhxhij",
+      "courses-codewithmosh-spring-boot-mastering-rest-api-development-2025-4": "folder-1775229333114-rhxhij",
+      "courses-java": "folder-1775229427785-xjx4i9",
+      "courses-js": "folder-1775229427785-xjx4i9",
+      "courses-react": "folder-1775229427785-xjx4i9",
+      "courses-source": "folder-1775398177244-5vmhpa"
+    }
+  },
   "autoplayVideos": true,
-  "autoAdvanceOnEnd": false,
-  "updatedAt": "2026-04-02T05:21:03.967Z"
+  "autoAdvanceOnEnd": true,
+  "defaultPlaybackSpeed": 1,
+  "updatedAt": "2026-04-07T03:48:08.903Z"
 }

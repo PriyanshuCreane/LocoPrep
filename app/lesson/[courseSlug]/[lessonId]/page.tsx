@@ -18,6 +18,7 @@ type LessonLocator = {
 type PlaybackSettings = {
   autoplayVideos: boolean;
   autoAdvanceOnEnd: boolean;
+  defaultPlaybackSpeed: number;
 };
 
 const BROWSER_PLAYABLE_VIDEO_EXTENSIONS = new Set([".mp4", ".webm", ".m4v"]);
@@ -79,6 +80,7 @@ export default function LessonViewerPage() {
   const [playbackSettings, setPlaybackSettings] = useState<PlaybackSettings>({
     autoplayVideos: false,
     autoAdvanceOnEnd: false,
+    defaultPlaybackSpeed: 1,
   });
 
   const mediaRef = useRef<HTMLMediaElement | null>(null);
@@ -140,9 +142,15 @@ export default function LessonViewerPage() {
         }
 
         const data = (await response.json()) as Partial<PlaybackSettings>;
+        const allowedSpeeds = new Set([0.5, 0.75, 1, 1.25, 1.5, 2]);
+        const defaultPlaybackSpeed =
+          typeof data.defaultPlaybackSpeed === "number" && allowedSpeeds.has(data.defaultPlaybackSpeed)
+            ? data.defaultPlaybackSpeed
+            : 1;
         setPlaybackSettings({
           autoplayVideos: Boolean(data.autoplayVideos),
           autoAdvanceOnEnd: Boolean(data.autoAdvanceOnEnd),
+          defaultPlaybackSpeed,
         });
       } catch {
         // Ignore settings fetch failures and fall back to defaults.
@@ -203,6 +211,14 @@ export default function LessonViewerPage() {
 
     media.playbackRate = speed;
   }, [speed]);
+
+  useEffect(() => {
+    if (!lessonId) {
+      return;
+    }
+
+    setSpeed(playbackSettings.defaultPlaybackSpeed || 1);
+  }, [lessonId, playbackSettings.defaultPlaybackSpeed]);
 
   const clearAutoNextCountdown = () => {
     if (autoNextIntervalRef.current) {
@@ -307,6 +323,7 @@ export default function LessonViewerPage() {
 
     const onLoadedMetadata = () => {
       setDuration(media.duration || 0);
+      media.playbackRate = speed;
     };
 
     const onPlay = () => {
@@ -359,7 +376,7 @@ export default function LessonViewerPage() {
       media.removeEventListener("pause", onPause);
       media.removeEventListener("ended", onEnded);
     };
-  }, [canUseMediaPlayer, courseId, lessonId, located, lessonProgress.completed, nextLesson, playbackSettings.autoAdvanceOnEnd, router, saveToServer, setLocalProgress]);
+  }, [canUseMediaPlayer, courseId, lessonId, located, lessonProgress.completed, nextLesson, playbackSettings.autoAdvanceOnEnd, router, saveToServer, setLocalProgress, speed]);
 
   useEffect(() => {
     return () => {
@@ -600,24 +617,29 @@ export default function LessonViewerPage() {
     return <section className="text-sm text-red-300">Lesson content path is invalid.</section>;
   }
 
-  const contentUrl = `/api/files/${encodedPath}`;
+  const rootQuery = activeCourse.sourceRootPath ? `?root=${encodeURIComponent(activeCourse.sourceRootPath)}` : "";
+  const agentUrl = typeof window !== "undefined" ? window.localStorage.getItem("locoprep-agent-url") || "" : "";
+  const fileUrl = agentUrl ? `${agentUrl}/api/file?path=${encodedPath}` : `/api/files/${encodedPath}${rootQuery}`;
+  const mediaUrl = activeLesson.mediaType === "video" 
+    ? (agentUrl ? `${agentUrl}/api/file?path=${encodedPath}` : `/api/video/${encodedPath}${rootQuery}`) 
+    : fileUrl;
   const lowerTitle = activeLesson.title.toLowerCase();
   const lowerContentPath = activeLesson.contentPath.toLowerCase();
   const isLikelyPdfByName = lowerContentPath.includes("pdf") || lowerTitle.includes("pdf");
   const isPdfLesson =
     activeLesson.mediaType === "pdf" || activeLesson.fileExtension.toLowerCase() === ".pdf" || isLikelyPdfByName;
-  const openFileUrl = contentUrl;
+  const openFileUrl = fileUrl;
   const canPreviewInline =
     !isPdfLesson && (activeLesson.mediaType !== "document") && !isBrowserUnsupportedVideo && !mediaPlaybackError;
 
   return (
-    <section className="space-y-6">
+    <section className="flex flex-col gap-6">
       {showCelebration && (
         <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
           <div className="flex flex-col items-center gap-4 animate-bounce">
             <CheckCircle2 className="h-16 w-16 text-cyan-300" />
             <div className="text-center">
-              <p className="text-2xl font-black text-white">{celebrationMessage}</p>
+              <p className="text-2xl font-black text-[var(--foreground)]">{celebrationMessage}</p>
               {streakCount > 0 && (
                 <div className="mt-3 flex items-center justify-center gap-2 text-lg font-semibold text-orange-200">
                   <Flame className="h-5 w-5" />
@@ -629,12 +651,12 @@ export default function LessonViewerPage() {
         </div>
       )}
 
-      <header className="glass-luxe edge-glow-violet rounded-3xl p-6 space-y-2">
+      <header className="glass-luxe edge-glow-violet order-2 rounded-3xl p-6 space-y-2">
         <p className="accent-script text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
           {activeCourse.name} / {activeModule.name}
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-white">{activeLesson.title}</h1>
-        <p className="max-w-3xl text-sm text-white/75">
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{activeLesson.title}</h1>
+        <p className="max-w-3xl text-sm text-[color-mix(in_srgb,var(--foreground)_76%,transparent)]">
           Type: <span className="font-semibold uppercase">{activeLesson.mediaType}</span>.
           {canUseMediaPlayer
             ? " Use space/arrow keys for quick playback control."
@@ -648,16 +670,19 @@ export default function LessonViewerPage() {
       </header>
 
       {canUseMediaPlayer && !mediaPlaybackError ? (
-        <div ref={playerContainerRef} className="media-stage glass-luxe-soft edge-glow-violet overflow-hidden rounded-2xl">
+        <div ref={playerContainerRef} className="media-stage glass-luxe-soft edge-glow-violet order-1 overflow-hidden rounded-2xl">
           {activeLesson.mediaType === "video" ? (
             <video
               ref={(node) => {
                 mediaRef.current = node;
+                if (node) {
+                  node.playbackRate = speed;
+                }
               }}
-              className="aspect-video w-full bg-black"
+              className="aspect-video w-full bg-[color-mix(in_srgb,var(--surface-2)_16%,#000)]"
               controls={false}
               preload="metadata"
-              src={contentUrl}
+              src={mediaUrl}
               onError={() => {
                 setMediaPlaybackError("This media could not be played in your browser. Open or download it to play in a desktop app.");
               }}
@@ -667,11 +692,14 @@ export default function LessonViewerPage() {
               <audio
                 ref={(node) => {
                   mediaRef.current = node;
+                  if (node) {
+                    node.playbackRate = speed;
+                  }
                 }}
                 className="w-full"
                 controls={false}
                 preload="metadata"
-                src={contentUrl}
+                src={mediaUrl}
                 onError={() => {
                   setMediaPlaybackError("This media could not be played in your browser. Open or download it to play in a desktop app.");
                 }}
@@ -780,7 +808,7 @@ export default function LessonViewerPage() {
           </div>
         </div>
       ) : (
-        <div className="glass-luxe-soft edge-glow-violet rounded-2xl p-5">
+        <div className="glass-luxe-soft edge-glow-violet order-1 rounded-2xl p-5">
           {!canPreviewInline ? (
             <div className="glass-luxe-soft edge-glow-violet rounded-xl p-5">
               <p className="text-sm text-[color:color-mix(in_srgb,var(--foreground)_78%,transparent)]">
@@ -790,7 +818,7 @@ export default function LessonViewerPage() {
               </p>
               <p className="mt-2 text-xs text-[color:color-mix(in_srgb,var(--foreground)_62%,transparent)]">
                 {isPdfLesson
-                  ? `File path: D:/Courses/${activeLesson.contentPath}`
+                  ? `File path: ${activeCourse.sourceRootPath}/${activeLesson.contentPath}`
                   : "Use open or download to view it in your preferred app."}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -818,7 +846,7 @@ export default function LessonViewerPage() {
                 <a
                   className="btn btn-primary px-4 py-2 text-sm font-bold"
                   download
-                  href={contentUrl}
+                  href={fileUrl}
                 >
                   Download
                 </a>
@@ -827,8 +855,8 @@ export default function LessonViewerPage() {
           ) : (
             <>
               <iframe
-                className="h-[70vh] w-full rounded-xl border border-white/20 bg-white"
-                src={contentUrl}
+                className="h-[70vh] w-full rounded-xl border border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] bg-[color-mix(in_srgb,var(--surface)_94%,transparent)]"
+                src={fileUrl}
                 title={activeLesson.title}
               />
             </>
@@ -867,7 +895,7 @@ export default function LessonViewerPage() {
         </div>
       )}
 
-      <div className="glass-luxe-soft edge-glow-violet flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
+      <div className="glass-luxe-soft edge-glow-violet order-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
         {previousLesson ? (
           <Link
             className="btn btn-ghost px-4 py-2 text-sm font-semibold"
@@ -876,7 +904,7 @@ export default function LessonViewerPage() {
             Previous lesson
           </Link>
         ) : (
-          <span className="text-sm text-white/35">No previous lesson</span>
+          <span className="text-sm text-[color-mix(in_srgb,var(--foreground)_38%,transparent)]">No previous lesson</span>
         )}
 
         {nextLesson ? (
@@ -887,7 +915,7 @@ export default function LessonViewerPage() {
             Next lesson
           </Link>
         ) : (
-          <span className="text-sm text-white/35">No next lesson</span>
+          <span className="text-sm text-[color-mix(in_srgb,var(--foreground)_38%,transparent)]">No next lesson</span>
         )}
       </div>
     </section>
